@@ -1,0 +1,16 @@
+{
+  "name": "supplypilot-procurement",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test": "node --experimental-transform-types --test tests/*.test.ts tests/*.test.mjs",
+    "validate": "node scripts/validate-artifact.mjs",
+    "dev": "node --experimental-transform-types scripts/dev.mjs"
+  },
+  "license": "MIT"
+}
