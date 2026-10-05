@@ -1,6 +1,6 @@
 # SupplyPilot — approval-first procurement assistant
 
-An open-source, single-owner hackathon prototype for an SMB supply buyer. It opens directly into a purchasing workspace: enter a brief and structured constraints, compare a grounded fixture catalog, edit the proposal, approve exact items and totals, run a simulated checkout, and inspect durable receipts and an audit trail.
+An open-source, single-owner hackathon prototype for an SMB supply buyer. A public project overview leads into a protected purchasing workspace: enter a brief and structured constraints, compare a grounded fixture catalog, edit the proposal, approve exact items and totals, run a simulated checkout, and inspect durable receipts and an audit trail.
 
 ## Honest integration status
 
@@ -55,7 +55,7 @@ AI_FALLBACK_MAX_PROMPT_PRICE=0.02
 AI_FALLBACK_MAX_COMPLETION_PRICE=0.50
 ```
 
-No credentials are included or configured. The old `OPENAI_API_KEY` and `AI_MODE=openai` no longer activate an adapter. A key alone does not enable AI: `AI_MODE=openrouter` is also required. `.env` files remain ignored. Configure the base URL only on the server using a trusted HTTPS OpenRouter-compatible endpoint; credentials in URLs, query strings and redirects are rejected. Never put keys in browser code or a public environment variable.
+No credentials are included in source control. Optional credentials are held in ignored local configuration and server-only deployment bindings. The old `OPENAI_API_KEY` and `AI_MODE=openai` no longer activate an adapter. A key alone does not enable AI: `AI_MODE=openrouter` is also required. `.env` files remain ignored. Configure the base URL only on the server using a trusted HTTPS OpenRouter-compatible endpoint; credentials in URLs, query strings and redirects are rejected. Never put keys in browser code or a public environment variable.
 
 **Synthetic data only.** No real customer, personal, account, capture, payment or sensitive financial information may be entered or sent. The [stealth model terms](https://openrouter.ai/terms/stealth) restrict sensitive inputs; its anonymous provider may retain prompts. This integration is a demonstration, not a production customer-data workflow. The input restrictions below apply to both primary and paid fallback.
 
@@ -67,7 +67,7 @@ The primary always has a zero-price provider filter, including when its model is
 
 There are at most two free-primary attempts for transient HTTP/transport failures and one opted-in paid attempt, each with a 6-second timeout and 256-token output limit (1024 total tokens for the explicitly configured free Liquid reasoning model). Inputs and response bytes are bounded. Malformed JSON, extra fields, tool calls, refusals, truncated output and invalid values are rejected. Errors shown to users contain no provider bodies, keys or raw transport details. Model output never authorizes a payment or changes server policy.
 
-This integration has been tested only with in-process mock transport. No live OpenRouter call, signup, credential setup, paid request, deployment or real payment has been performed. Live connectivity and browser visual QA are unverified.
+Live OpenRouter inference was observed on October 5, 2026 for a built-in synthetic example, with validated JSON and zero reported cost. Paid fallback remained disabled. Local mocks cover failure and policy boundaries. The public overview and protected workspace are deployed to this project’s custom domain. Actual completed sandbox payments and browser visual QA remain separate open verification gates.
 
 ### Procurement input boundary
 
@@ -120,4 +120,4 @@ The CSS includes 1450/1180/930/760/500px responsive breakpoints, visible focus r
 
 ## License
 
-MIT; see [LICENSE](LICENSE). Third-party APIs and services remain subject to their own terms. No deployment or real payment is included.
+MIT; see [LICENSE](LICENSE). Third-party APIs and services remain subject to their own terms. A custom-domain deployment is provided; completed sandbox transaction evidence is reported separately.
