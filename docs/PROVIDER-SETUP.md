@@ -18,4 +18,4 @@ SITE_OWNER_KEY protects the single-owner state and mutation APIs. Supply the acc
 
 ## Current evidence limit
 
-The deployment operator configured private server bindings and verified live, schema-validated OpenRouter inference through each protected hosted app using the zero-price Liquid model. PayPal sandbox authentication and order creation were also verified. Buyer approval, captures, the Resolution Desk refund, and Fieldnote webhook delivery remain unverified. Complete and record these provider outcomes before describing the entries as submit-ready. Public YouTube demonstrations and final judge-access/submission requirements also remain open.
+Live schema-validated OpenRouter inference was verified through this protected hosted app with the zero-price Liquid model. The hosted workspace returned validated free-model AI responses and created a PayPal sandbox order. Completed capture and wallet return UX remain unverified. Public YouTube demonstrations, final judge access and eligibility/submission requirements remain open. These results establish sandbox behavior, not production readiness. Sanitized receipts are in evidence/.
