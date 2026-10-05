@@ -15,3 +15,5 @@ main,footer,.loop-end{position:relative}.hero{position:relative;min-height:100sv
 @media(max-width:600px){.chapter.right,.chapter-story{background:linear-gradient(0deg,var(--paper) 12%,transparent 96%)}}
 
 .detail-pause{height:100svh;pointer-events:none}
+
+@media(min-width:600px){.chapter-story h2{font-size:clamp(48px,5.8vw,94px)}}
