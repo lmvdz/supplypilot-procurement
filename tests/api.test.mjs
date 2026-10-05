@@ -1,5 +1,5 @@
 import test from 'node:test';import assert from 'node:assert/strict';import {DatabaseSync} from 'node:sqlite';import {readFileSync} from 'node:fs';
-import worker from '../dist/server/index.js';
+import {applicationWorker as worker} from '../dist/server/index.js';
 function fixture(){const sqlite=new DatabaseSync(':memory:');sqlite.exec(readFileSync('drizzle/0000_workspace.sql','utf8'));const env={DB:{prepare(sql){return {bind(...args){return {async run(){const r=sqlite.prepare(sql).run(...args);return {meta:{changes:Number(r.changes)}}},async first(){return sqlite.prepare(sql).get(...args)||null}}}}}}};return {env,sqlite}}
 async function call(env,body,path='/api/workspace'){const res=await worker.fetch(new Request('https://example.test'+path,body?{method:'POST',headers:{origin:'https://example.test','content-type':'application/json'},body:JSON.stringify(body)}:{}),env);return {status:res.status,data:await res.json()}}
 async function approved(env){const loaded=await call(env);const r=await call(env,{action:'approve',expectedVersion:loaded.data.version,expectedFingerprint:loaded.data.quoteFingerprint});assert.equal(r.status,200);return r.data}
