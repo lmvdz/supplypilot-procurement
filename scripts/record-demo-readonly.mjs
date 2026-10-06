@@ -102,7 +102,7 @@ export async function record(){
    const request=route.request();let url;try{url=new URL(request.url());}catch{aborted=true;return route.abort();}
    if(url.origin!==cfg.origin){aborted=true;return route.abort();}
    if(['GET','HEAD'].includes(request.method())){if(url.pathname.startsWith('/owner/')||url.searchParams.has('paypal')){aborted=true;return route.abort();}return route.continue();}
-   if(request.method!=='POST'||posts>=2){aborted=true;return route.abort();}
+   if(request.method()!=='POST'||posts>=2){aborted=true;return route.abort();}
    let body;try{body=request.postDataJSON();}catch{aborted=true;return route.abort();}
    try{target=completedRecord(project,await read(),expected);}catch{aborted=true;return route.abort();}
    if(!allowedPost(project,url.pathname,body,target)){aborted=true;return route.abort();}
@@ -116,28 +116,35 @@ export async function record(){
    captionLines(detail);
    scenes.push({at:(Date.now()-started)/1000,title,detail});await page.waitForTimeout(seconds*1000);
   }
+  async function selectorCounts(label,selectors){const counts={};for(const [name,selector]of Object.entries(selectors))counts[name]=await page.locator(selector).count();console.log(JSON.stringify({stage:label,selectors:counts,busy:await page.locator('body').getAttribute('aria-busy')==='true',pageError}));}
   stage('PUBLIC_SCENE');await page.goto(cfg.origin+'/',{waitUntil:'domcontentloaded',timeout:20000});await page.waitForFunction(version=>document.documentElement.dataset.scene==='ready'&&document.documentElement.dataset.sceneVersion===version,project==='supplypilot'?'mesh-v7p2':'mesh-v7');await scene(cfg.title+' · '+cfg.audience,'Synthetic data · previously verified sandbox outcome · no new payment during this recording',12);
-  stage('PRIVATE_SCENE');await page.goto(cfg.origin+'/app',{waitUntil:'networkidle',timeout:20000});if(await page.locator('#access-key').count())STOP('LOGIN_MUST_NOT_BE_RECORDED');
+  if(project==='fieldnote'){stage('PRIVATE_SCENE');await page.goto(cfg.origin+'/app',{waitUntil:'networkidle',timeout:20000});}
+  else{stage('PRIVATE_NAVIGATE');await page.goto(cfg.origin+'/app',{waitUntil:'domcontentloaded',timeout:20000});stage('PRIVATE_READY');await selectorCounts('PRIVATE_READY',{login:'#access-key',boot:'.boot',app:'#app',merchant_mode:'#payment-mode',connections:'[data-view="connections"]'});await page.waitForFunction(()=>document.body.getAttribute('aria-busy')!=='true');if(project==='merchant')await page.locator('#payment-mode').waitFor({state:'visible'});else await page.getByRole('button',{name:'Connections',exact:true}).waitFor({state:'visible'});}
+  if(await page.locator('#access-key').count())STOP('LOGIN_MUST_NOT_BE_RECORDED');
   if(project==='merchant'){
+   stage('MERCHANT_SANDBOX_SELECT');await selectorCounts('MERCHANT_SANDBOX_SELECT',{mode:'#payment-mode',recheck:'[data-action="analyze"]',receipt:'.proposal.success .resultbox strong',replay:'[data-action="replay"]'});
+   await page.locator('#payment-mode').selectOption('sandbox');await page.locator('.proposal.success .resultbox strong').filter({hasText:expected.record}).waitFor();await read();
    await scene('An incomplete $198 order','The fulfillment fixture supports a $34 missing-pouch refund. Human approval and server policy retain authority.',24);
+   stage('MERCHANT_RECHECK');await selectorCounts('MERCHANT_RECHECK',{recheck:'[data-action="analyze"]',receipt:'.proposal.success .resultbox strong'});
    const ai=page.waitForResponse(r=>new URL(r.url()).pathname==='/api/desk'&&r.request().method()==='POST'&&r.request().postDataJSON()?.action==='analyze');
    await page.waitForFunction(()=>document.body.getAttribute('aria-busy')!=='true');await page.locator('[data-action="analyze"]').click();const result=await(await ai).json();if(result.proposal?.amountCents!==3400||!result.explanation?.engine)STOP('EXPLANATION_OR_POLICY_NOT_VERIFIED');
    aiEvidence.attempted=true;aiEvidence.engine=result.explanation.engine;aiEvidence.usedFallback=!result.explanation.engine.includes('OpenRouter');
    await scene(aiEvidence.usedFallback?'A safe local fallback; policy decides':'Actual AI explains; policy decides',aiEvidence.usedFallback?'The live attempt used deterministic fallback. The displayed engine is accurate; model availability cannot change the $34 policy amount.':'This is the live synthetic model response. The model cannot change the amount or authorize a refund.',28);
-   await page.locator('#payment-mode').selectOption('sandbox');await page.locator('.proposal.success .resultbox strong').filter({hasText:expected.record}).waitFor();
+   stage('MERCHANT_RECEIPT');await page.locator('.proposal.success .resultbox strong').filter({hasText:expected.record}).waitFor();
    await scene('PayPal sandbox refund complete','The recorded $34 refund is shown with its actual receipt. Test funds only; wallet return UX is unverified.',30);
-   await page.locator('[data-action="replay"]').click();await page.getByText('Duplicate suppressed. The original refund was reused.',{exact:true}).waitFor();await read();
+   stage('MERCHANT_REPLAY');await selectorCounts('MERCHANT_REPLAY',{replay:'[data-action="replay"]',audit:'.auditpanel'});await page.locator('[data-action="replay"]').click();await page.getByText('Duplicate suppressed. The original refund was reused.',{exact:true}).waitFor();await read();
    await page.locator('.auditpanel').scrollIntoViewIfNeeded();await scene('Replay reuses one operation','The existing completed operation, refund and request ID remain unchanged. No new refund is issued.',30);
   }else if(project==='supplypilot'){
    await scene('A policy-checked purchase','Eight mailer packs. The approved all-in quote is $201.66 USD; budget, stock and seller checks run on the server.',28);
-   await page.locator('[data-view="connections"]').first().click();
+   stage('SUPPLY_CONNECTIONS_OPEN');await selectorCounts('SUPPLY_CONNECTIONS_OPEN',{connections:'[data-view="connections"]',orders:'[data-view="orders"]',audit:'[data-view="audit"]'});await page.getByRole('button',{name:'Connections',exact:true}).click();
+   stage('SUPPLY_AI_EXPLAIN');await selectorCounts('SUPPLY_AI_EXPLAIN',{explain:'#explain',connections:'[data-view="connections"]'});
    if(await page.locator('#explain').count()){
     const ai=page.waitForResponse(r=>new URL(r.url()).pathname==='/api/workspace'&&r.request().method()==='POST'&&r.request().postDataJSON()?.action==='explain');await page.waitForFunction(()=>document.body.getAttribute('aria-busy')!=='true');await page.locator('#explain').click();const result=await(await ai).json();if(!result.aiSource||!result.explanation)STOP('EXPLANATION_NOT_VERIFIED');aiEvidence.attempted=true;aiEvidence.engine=result.aiSource;aiEvidence.usedFallback=!result.aiSource.includes('OpenRouter');
    }else{aiEvidence.engine='Deterministic rules (provider not configured)';aiEvidence.usedFallback=true;}
    await scene(aiEvidence.usedFallback?'Guarded rules remain available':'Actual AI explains fixture options',aiEvidence.usedFallback?'The displayed engine used local deterministic rules. AI availability cannot change the approved price or bypass policy.':'The live explanation is bounded by supplied facts. Exact-quote approval and checkout remain deterministic.',28);
-   await page.locator('[data-view="orders"]').first().click();await page.locator('.table-wrap td strong').filter({hasText:expected.record}).waitFor();
+   stage('SUPPLY_ORDERS_OPEN');await selectorCounts('SUPPLY_ORDERS_OPEN',{orders:'[data-view="orders"]',receipt_rows:'.table-wrap td strong'});await page.getByRole('button',{name:'Order history',exact:true}).click();await page.locator('.table-wrap td strong').filter({hasText:expected.record}).waitFor();
    await scene('One actual sandbox capture','The real $201.66 test-funds capture produced this single receipt. No real supplies ship.',30);
-   await page.locator('[data-view="audit"]').first().click();await scene('An inspectable decision trail','Prior receipts and audit history are preserved. Duplicate protection was verified separately; no new checkout runs here.',30);
+   stage('SUPPLY_AUDIT_OPEN');await selectorCounts('SUPPLY_AUDIT_OPEN',{audit:'[data-view="audit"]',receipt_rows:'.table-wrap td strong'});await page.getByRole('button',{name:'Audit trail',exact:true}).click();await scene('An inspectable decision trail','Prior receipts and audit history are preserved. Duplicate protection was verified separately; no new checkout runs here.',30);
   }else{
    aiEvidence.engine=snapshot.state.engine==='openrouter'?'Stored validated OpenRouter extraction':'Stored deterministic quote rules';aiEvidence.usedFallback=snapshot.state.engine!=='openrouter';
    await page.locator('#quote-heading').scrollIntoViewIfNeeded();await scene('A catalog-priced service quote',aiEvidence.usedFallback?'The recorded scope is three carpet rooms plus pet treatment at $155 USD. The displayed drafting engine is local rules.':'The recorded scope is three carpet rooms plus pet treatment at $155 USD. The stored actual AI engine label is shown.',28);
