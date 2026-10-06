@@ -1,27 +1,30 @@
 # SupplyPilot — approval-first procurement assistant
 
-An open-source, single-owner hackathon prototype for an SMB supply buyer. It opens directly into a purchasing workspace: enter a brief and structured constraints, compare a grounded fixture catalog, edit the proposal, approve exact items and totals, run a simulated checkout, and inspect durable receipts and an audit trail.
+An open-source, single-owner hackathon prototype for an SMB supply buyer. A public project overview leads into a protected purchasing workspace: enter a brief and structured constraints, compare a grounded fixture catalog, edit the proposal, approve exact items and totals, run a simulated checkout, and inspect durable receipts and an audit trail.
 
 ## Honest integration status
 
 - **Working:** fixture-based sourcing across shipping, office and cleaning supplies; all-in quote arithmetic; server-enforced budget, seller, quantity, stock, delivery and low-waste policy; exact review version and SHA-256 quote binding; 15-minute approval expiry; changed-price/stock rejection; lost-response retry; durable D1 state, receipts and audit; mobile-responsive interface; keyboard-accessible native inputs and approval dialog.
 - **Payment demo:** the default is a local payment simulator. It does not call PayPal, move money, place a real order or dispatch goods. The three sourcing labels and all catalog inventory are fictional, modeled under one demo merchant.
-- **Real PayPal sandbox adapter:** server-side OAuth token exchange, Orders v2 create, buyer approval redirect, capture and status reconciliation are implemented. The API base is hard-coded to `https://api-m.sandbox.paypal.com`. Stable UUID `PayPal-Request-Id` values are persisted before side effects. Capture currency and exact total are verified. It is unconfigured and has been validated with mocked transport, not real sandbox credentials or funds.
-- **AI:** the default is an explicit, deterministic ranking heuristic. The free-text brief is stored but is not semantically parsed. Structured category/quantity/budget/constraints are authoritative. An optional server-only OpenAI Responses adapter can explain supplied candidates; it cannot change prices, override policy or execute checkout. No provider key is configured and no AI provider calls were made.
+- **Real PayPal sandbox adapter:** server-side OAuth token exchange, Orders v2 create, buyer approval redirect, capture and status reconciliation are implemented. The API base is hard-coded to `https://api-m.sandbox.paypal.com`. Stable UUID `PayPal-Request-Id` values are persisted before side effects. Capture currency and exact total are verified. The hosted application completed an actual $201.66 sandbox test-card capture. PayPal order/capture status and the exact USD amount were verified; one durable receipt and one stock deduction were observed, and duplicate capture reused that receipt. Wallet buyer approval/return UX remains unverified. Transport and recovery boundaries also have mocked tests.
+- **AI:** the default is an explicit, deterministic ranking heuristic. The free-text brief is stored but is not semantically parsed. Structured category/quantity/budget/constraints are authoritative. An optional server-only OpenRouter adapter can explain fixture ranking and policy checks; it cannot change prices, override policy or execute checkout. Private configuration returned validated, zero-cost OpenRouter inference through the hosted API on October 5, 2026; paid fallback remains disabled.
 - **Not included:** live supplier/retailer integrations, Channel3, arbitrary-retailer PayPal acceptance, real fulfilment, supplier inventory reservation, production tax logic, multi-user roles or verified PayPal webhooks. These are integration work, not claimed capabilities.
 
 ## Run locally
 
-Node.js 24+ is required. There are **no npm dependencies** and no installation step.
+Requires Node.js 24 or newer. The build runs without an npm install. The original public 3D scene includes a locally served, MIT-licensed Three.js runtime; see [scene design](docs/SCENE-DESIGN.md).
 
-    npm run build
-    npm test
-    npm run validate
-    npm run dev
+```sh
+node scripts/setup-private.mjs
+node scripts/build.mjs
+node --experimental-transform-types --test --test-isolation=none tests/*.test.ts tests/*.test.mjs
+node scripts/validate-artifact.mjs
+node scripts/dev.mjs
+```
 
-The local server prints `http://127.0.0.1:8812`. Set `PORT` to select another port. The local server stores its demo SQLite database under ignored `.local/`. It intentionally uses simulator mode. The Worker expects a D1-compatible `DB` binding. Hosting configuration is intentionally omitted. Authentication, per-user authorization and storage isolation are required before exposing this single-owner application to other users.
+Open http://127.0.0.1:8812/ for the public project overview, then choose the workspace link or visit /app. Read SITE_OWNER_KEY from the ignored .dev.vars file and enter it at the access gate. Keep this key out of source control, screenshots, recordings, and public submission text. PORT overrides the local port. State persists in ignored .local/ SQLite files; the deployed Worker uses its D1 DB binding.
 
-The app uses a dependency-free Worker with TypeScript stripped by Node's built-in transformer. Source modules are combined deterministically by `scripts/build.mjs`; the browser client and stylesheet are embedded. No remote CDN dependencies or build-time network calls are needed.
+The initial configuration uses synthetic examples and the no-money simulator. [Private provider setup](docs/PROVIDER-SETUP.md) explains the optional AI and PayPal sandbox configuration. [Cloudflare deployment](docs/DEPLOYMENT.md) describes hosting at https://supplypilot.inkwell.finance. Deployment status is reported separately from implementation.
 
 ## Sandbox configuration
 
@@ -37,11 +40,40 @@ Then approve the exact proposal, choose PayPal Sandbox checkout, approve using a
 
 An uncertain create attempt without a returned provider order ID cannot be blindly reset. The same create request ID is reused for up to five hours, within the intended idempotency window. Later uncertainty requires operator reconciliation. This conservative behavior is intentional.
 
-Optional AI explanation configuration:
+## Optional OpenRouter AI (synthetic demo only)
 
-    OPENAI_API_KEY=<server-only existing key>
+The default remains deterministic and requires no keys. The server-only adapter uses OpenRouter's [Chat Completions API](https://openrouter.ai/docs/api_reference/overview), not an OpenAI key substituted into a different endpoint. Enable it only for synthetic demo data with an existing server-held key:
 
-Only when configured and explicitly requested from the Connections page does the app send the saved brief and fixture candidates to OpenAI. Do not enter sensitive information in this demo. The adapter uses `gpt-4.1-mini`; change and test this choice before production.
+```dotenv
+AI_MODE=openrouter
+OPENROUTER_API_KEY=<existing server-only key>
+AI_BASE_URL=https://openrouter.ai/api/v1
+AI_PRIMARY_MODEL=liquid/lfm-2.5-2.6b:free
+AI_FALLBACK_MODEL=deepseek/deepseek-v4.1-flash
+AI_ALLOW_PAID_FALLBACK=false
+AI_FALLBACK_MAX_PROMPT_PRICE=0.02
+AI_FALLBACK_MAX_COMPLETION_PRICE=0.50
+```
+
+No credentials are included in source control. Optional credentials are held in ignored local configuration and server-only deployment bindings. The old `OPENAI_API_KEY` and `AI_MODE=openai` no longer activate an adapter. A key alone does not enable AI: `AI_MODE=openrouter` is also required. `.env` files remain ignored. Configure the base URL only on the server using a trusted HTTPS OpenRouter-compatible endpoint; credentials in URLs, query strings and redirects are rejected. Never put keys in browser code or a public environment variable.
+
+**Synthetic data only.** This entry sends allowlisted fictional inputs to the optional model provider. Keep real customer, account, capture, payment and other sensitive information out of the demonstration. The input boundaries below apply to every configured model and fallback.
+
+The prepared configuration explicitly selects `liquid/lfm-2.5-2.6b:free`, checked against the OpenRouter model catalog on October 5, 2026. The adapter still requires a zero-price provider; catalog availability is not live inference evidence. The legacy Space Bunny default has a retirement guard and is not used by the prepared configuration. If no free route is available, deterministic rules remain available and paid fallback stays disabled.
+
+Paid fallback is **disabled by default**. Setting the server variable `AI_ALLOW_PAID_FALLBACK=true` deliberately opts into at most one separate [DeepSeek V4.1 Flash](https://openrouter.ai/deepseek/deepseek-v4.1-flash) request when the primary is unavailable, retired or produces invalid output. Authentication, billing and invalid-request errors do not trigger fallback. Its strict schema is requested only on that separate opted-in attempt; a schema requirement cannot route the primary to a paid model. The actual fallback is labeled in the UI.
+
+The primary always has a zero-price provider filter, including when its model is overridden. Fallback filters cap provider prices at $0.02/M input and $0.50/M output by default. These are price ceilings, not a guaranteed available route or account spending budget. [Provider prices and availability vary](https://openrouter.ai/docs/guides/routing/provider-selection); no qualifying provider means deterministic fallback. Deliberately changing these server-side caps can change costs. Requests specify one model, disable provider failover, and never use automatic model routing.
+
+There are at most two free-primary attempts for transient HTTP/transport failures and one opted-in paid attempt, each with a 6-second timeout and 256-token output limit (1024 total tokens for the explicitly configured free Liquid reasoning model). Inputs and response bytes are bounded. Malformed JSON, extra fields, tool calls, refusals, truncated output and invalid values are rejected. Errors shown to users contain no provider bodies, keys or raw transport details. Model output never authorizes a payment or changes server policy.
+
+Live OpenRouter inference was observed on October 5, 2026 for a built-in synthetic example, with validated JSON and zero reported cost. Paid fallback remained disabled. Local mocks cover failure and policy boundaries. The public overview and protected workspace are deployed to this project’s custom domain. The hosted application completed an actual $201.66 sandbox test-card capture. PayPal order/capture status and the exact USD amount were verified; one durable receipt and one stock deduction were observed, and duplicate capture reused that receipt. Wallet buyer approval/return UX remains unverified.
+
+### Procurement input boundary
+
+Only canonical fictional catalog labels, their server-computed ranking and policy-check results are sent. Free-text briefs, requested budgets and quantities, prices, order/capture/session IDs and payment data stay local. AI explains the already-computed ranking; it does not source inventory, calculate or set prices, alter the saved quote, approve or execute checkout. Failed AI returns a deterministic explanation and visible warning.
+
+For local setup, edit the ignored `.dev.vars` file and restart the server. The scripts load missing process variables from this file. Explicit process variables take precedence.
 
 ## Safety architecture
 
@@ -64,9 +96,9 @@ Only when configured and explicitly requested from the Connections page does the
 
 ## Tests and verification
 
-`npm test` runs 22 tests covering cents arithmetic, budget/seller/quantity/delivery gates, malformed values, stale displayed quotes, approval expiry, stock changes, lost-response recovery, concurrent checkout, one-receipt/one-debit idempotency, reset preservation, sandbox-only transport, stable request IDs, exact captured amounts, cross-origin rejection, unconfigured integrations, and expired/uncertain sandbox recovery. The final bundle is also imported and validated as a Worker ES module. All PayPal tests use fake transport; none calls PayPal.
+`npm test` includes the original 22 domain/payment tests plus mocked OpenRouter transport, input-privacy and approval-invariant tests covering cents arithmetic, budget/seller/quantity/delivery gates, malformed values, stale displayed quotes, approval expiry, stock changes, lost-response recovery, concurrent checkout, one-receipt/one-debit idempotency, reset preservation, sandbox-only transport, stable request IDs, exact captured amounts, cross-origin rejection, unconfigured integrations, and expired/uncertain sandbox recovery. The final bundle is also imported and validated as a Worker ES module. All PayPal tests use fake transport; none calls PayPal.
 
-The CSS includes 1450/1180/930/760/500px responsive breakpoints, visible focus rings, reduced motion support, native dialog focus handling, and a skip link. Source checks verify these hooks; a full mobile browser/device accessibility audit remains to be done. Source/API checks do not establish completed visual browser QA.
+Automated Chromium review covered desktop, 390px and 320px mobile layouts, keyboard controls, reduced motion, loop seams, graphics fallback and simulated application workflows. The reviewed landing builds passed 38 checks with zero axe violations or page errors in the tested states; see [verification evidence](docs/VERIFICATION.md). This is bounded browser evidence, not an accessibility certification or a real-device audit. PayPal sandbox and webhook evidence is recorded separately from simulated browser workflows.
 
 ## Source map
 
@@ -88,4 +120,6 @@ The CSS includes 1450/1180/930/760/500px responsive breakpoints, visible focus r
 
 ## License
 
-MIT; see [LICENSE](LICENSE). Third-party APIs and services remain subject to their own terms. No deployment or real payment is included.
+MIT; see [LICENSE](LICENSE). Third-party APIs and services remain subject to their own terms. A custom-domain deployment is provided; completed sandbox transaction evidence is reported separately.
+
+PayPal transports reject redirects before parsing provider bodies. Checkout capture requests ask for a full representation; a minimal successful capture is recovered by reading the same order once before exact verification. This recovery never creates a second capture request.

@@ -1,6 +1,6 @@
 import {DomainError,initialWorkspace,type Workspace} from './domain.ts';
 type Database={prepare:(sql:string)=>{bind:(...values:unknown[])=>{run:()=>Promise<{meta:{changes:number}}>;first:<T>()=>Promise<T|null>}}};
-export type RuntimeEnv={DB?:Database;PAYPAL_MODE?:string;PAYPAL_CLIENT_ID?:string;PAYPAL_CLIENT_SECRET?:string;OPENAI_API_KEY?:string};
+export type RuntimeEnv={DB?:Database;PAYPAL_MODE?:string;PAYPAL_CLIENT_ID?:string;PAYPAL_CLIENT_SECRET?:string;AI_MODE?:string;OPENROUTER_API_KEY?:string;AI_BASE_URL?:string;AI_PRIMARY_MODEL?:string;AI_FALLBACK_MODEL?:string;AI_ALLOW_PAID_FALLBACK?:string;AI_FALLBACK_MAX_PROMPT_PRICE?:string;AI_FALLBACK_MAX_COMPLETION_PRICE?:string};
 const WORKSPACE='private-owner-workspace';
 function database(env:RuntimeEnv){if(!env.DB)throw new DomainError('STORAGE_UNAVAILABLE','Workspace storage is unavailable. Please retry shortly.',503);return env.DB}
 export async function readWorkspace(env:RuntimeEnv){const db=database(env);await db.prepare('INSERT OR IGNORE INTO workspaces (id,state,version) VALUES (?,?,0)').bind(WORKSPACE,JSON.stringify(initialWorkspace())).run();const row=await db.prepare('SELECT state,version FROM workspaces WHERE id=?').bind(WORKSPACE).first<{state:string;version:number}>();if(!row)throw new DomainError('STORAGE_UNAVAILABLE','Could not load the workspace.',503);return {state:JSON.parse(row.state) as Workspace,version:row.version}}
