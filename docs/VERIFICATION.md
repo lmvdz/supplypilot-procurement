@@ -31,7 +31,7 @@ The revised hosted explanation attempt used Deterministic rules/fallback, with i
 
 87.28–167.20 seconds: existing hosted $201.66 sandbox receipt and readable deterministic fallback explanation. No hosted capture or refund is performed in this film. Prior actual capture/replay evidence is separate.
 
-An earlier browser report passed 38 checks on the unchanged application assets. The latest run and same-source retry each failed a 30-second privacy navigation after 32 passing checks. Navigation diagnostics now retain server response and browser event timing under the same timeout; the instrumented run is pending. No successful conclusion for that run is claimed.
+An earlier browser report passed 38 checks on the unchanged application assets. The latest run and same-source retry each failed a 30-second privacy navigation after 32 passing checks. The instrumented run **37398239674**, source `ed714b341fec43fc093385bfff7dade57cde2272`, passed all **38 checks**, with zero reported errors or axe violations. It retained the original total 30-second navigation budget and used no retries. The server probe took 11 ms; the browser received HTTP 200 at 21 ms but committed at 21.235 seconds and reached DOMContentLoaded at 21.248 seconds after the graphics stress sequence. These observations support a browser-side delay in that run, not a proven root cause or a guarantee against recurrence. The earlier failed runs remain part of the evidence. Application/deployed assets were unchanged.
 No observed axe violation/page error in tested states is a universal accessibility certification. Free-model availability, future cost and broad factual accuracy are not guaranteed.
 
 ## Remaining submission gates
