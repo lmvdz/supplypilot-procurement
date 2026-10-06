@@ -98,7 +98,7 @@ For local setup, edit the ignored `.dev.vars` file and restart the server. The s
 
 `npm test` includes the original 22 domain/payment tests plus mocked OpenRouter transport, input-privacy and approval-invariant tests covering cents arithmetic, budget/seller/quantity/delivery gates, malformed values, stale displayed quotes, approval expiry, stock changes, lost-response recovery, concurrent checkout, one-receipt/one-debit idempotency, reset preservation, sandbox-only transport, stable request IDs, exact captured amounts, cross-origin rejection, unconfigured integrations, and expired/uncertain sandbox recovery. The final bundle is also imported and validated as a Worker ES module. All PayPal tests use fake transport; none calls PayPal.
 
-The CSS includes 1450/1180/930/760/500px responsive breakpoints, visible focus rings, reduced motion support, native dialog focus handling, and a skip link. Source checks verify these hooks; a full mobile browser/device accessibility audit remains to be done. Source/API checks do not establish completed visual browser QA.
+Automated Chromium review covered desktop, 390px and 320px mobile layouts, keyboard controls, reduced motion, loop seams, graphics fallback and simulated application workflows. The reviewed landing builds passed 38 checks with zero axe violations or page errors in the tested states; see [verification evidence](docs/VERIFICATION.md). This is bounded browser evidence, not an accessibility certification or a real-device audit. PayPal sandbox and webhook evidence is recorded separately from simulated browser workflows.
 
 ## Source map
 
